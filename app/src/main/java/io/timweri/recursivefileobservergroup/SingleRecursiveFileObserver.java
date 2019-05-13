@@ -7,19 +7,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-public class RecursiveFileObserver extends FileObserver {
+public class SingleRecursiveFileObserver extends FileObserver {
     private List<SingleFileObserver> mObservers;
     private String rootPath;
     private final int mMask;
+    private final RecursiveFileObserverGroup mObserverGroup;
 
-    public RecursiveFileObserver(String path) {
-        this(path, ALL_EVENTS);
+    public SingleRecursiveFileObserver(RecursiveFileObserverGroup observerGroup, String path) {
+        this(observerGroup, path, ALL_EVENTS);
     }
 
-    public RecursiveFileObserver(String path, int mask) {
+    public SingleRecursiveFileObserver(RecursiveFileObserverGroup observerGroup, String path, int mask) {
         super(path, mask);
         rootPath = path;
         mMask = mask;
+        mObserverGroup = observerGroup;
     }
 
     @Override
@@ -35,22 +37,23 @@ public class RecursiveFileObserver extends FileObserver {
             File path = new File(parent);
             File[] files = path.listFiles();
             if (files == null) continue;
-            for (int i = 0; 1 < files.length; ++i) {
-                if (files[i].isDirectory() && !files[i].getName().equals(".") && !files[i].getName().equals("..")) {
-                    pathStack.push(files[i].getPath());
+            for (File file : files) {
+                if (file.isDirectory() && !file.getName().equals(".") && !file.getName().equals("..")) {
+                    pathStack.push(file.getPath());
                 }
             }
         }
-        for (int i = 0; i < mObservers.size(); ++i) {
-            mObservers.get(i).startWatching();
+
+        for (SingleFileObserver obv : mObservers) {
+            obv.startWatching();
         }
     }
 
     @Override
     public void stopWatching() {
         if (mObservers == null) return;
-        for (int i = 0; i < mObservers.size(); ++i) {
-            mObservers.get(i).stopWatching();
+        for (SingleFileObserver obv : mObservers) {
+            obv.stopWatching();
         }
         mObservers.clear();
         mObservers = null;
@@ -58,6 +61,7 @@ public class RecursiveFileObserver extends FileObserver {
 
     @Override
     public void onEvent(int event, String path) {
-        // do whatever you want here
+        String fullPath = rootPath + '/' + path;
+        mObserverGroup.onEvent(event, path);
     }
 }
